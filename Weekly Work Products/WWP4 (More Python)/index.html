@@ -1,0 +1,87 @@
+<!doctype html>
+
+<html>
+  <script src="https://unpkg.com/vue@2"></script>
+  <!-- Import package to enable Python -->
+  <script src="https://cdn.jsdelivr.net/npm/brython@3/brython.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/brython@3/brython_stdlib.js"></script>
+<style>
+#app {
+  width: 90%;
+  padding: 20px;
+  border-radius: 20px;
+  background-color: lightskyblue;
+}
+</style>
+</head>
+<!-- Note the onload attribute which initialises Python -->
+<body onload="brython(1)">
+    <h1>INFO102 WWP 4 List Processing</h1>
+
+    <p><b>Instructions</b>: write Python code to: 
+    <ol>
+      <li>Retrieve some data from a server, using the provided URL.</li>
+      <li>Calculate the total number of workshops registrations, storing the result in <tt>app.totalRegistrations</tt></li>
+      <li> Create a list of the workshops with 12 or more registrations, storing the result in <tt>app.highEnrolments</tt></li>
+    </ol>
+    </p>
+
+    <div id="app">
+      <input type="button" value="Go!" @click="go">
+        <h1>Workshop Registrations</h1>
+        <b>Total registrations: {{totalRegistrations}}</b>
+        <h2>Workshops with too high registrations</h2>
+        <ul>
+          <li v-for="item in highEnrolments">{{item}}</li>
+        </ul>
+        <hr>
+        <b>Received from server:</b><br>
+        <textarea v-model="output" cols=60 rows=23></textarea>
+    </div>
+
+<!-- For this WWP we are putting the Python in the main HTML page. -->
+<script type="text/python">
+from browser import window
+import json
+import urllib.request
+url = 'https://api.npoint.io/b085bb045be34d6b30d8'
+
+def go(ev):
+  # Fetch data from the server
+  response = urllib.request.urlopen(url)
+  server_data = json.loads(response.read())
+  # Leave the following lines here
+  app.output = json.dumps(server_data, indent=4)
+  calculate(server_data)
+
+def calculate(server_data):
+  # Calculate the total number of workshop registrations
+  total = 0
+  for workshop in server_data:
+    total += workshop['registrations']
+  app.totalRegistrations = total
+
+  # Create a list of workshops with 12 or more registrations
+  high = []
+  for workshop in server_data:
+    if workshop['registrations'] >= 12:
+      high.append(workshop)
+  app.highEnrolments = high
+
+app = window.Vue.new({
+  'el': '#app',
+  'data': {
+  # Variables go here
+  'totalRegistrations' : 0,
+  'highEnrolments': [],
+  'output' : ''
+  },
+  'methods': {
+  # Python functions used by Vue go here
+  'go' : go
+  }
+})
+</script>
+
+</body>
+</html>
