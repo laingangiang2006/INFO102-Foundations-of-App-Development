@@ -8,7 +8,7 @@ Graded items in this course are **Weekly Work Products** and **Project**.
 
 The WWP entries in this repository were revised after I received the grades.
 
-**These are links to my WWP Plunker:**
+**Links to my WWP Plunks:**
 
 1. **WWP1 (HTML, CSS)**: [Click here](https://plnkr.co/edit/CFuQpvTwIF2hpMX1)
 2. **WWP2 (Basic Python)**: [Click here](https://plnkr.co/edit/Ak5Lzak1gn7ryZsV?preview)
@@ -19,6 +19,8 @@ The WWP entries in this repository were revised after I received the grades.
 ## Workshop Tasks
 
 These tasks are what I am given to practice in my workshop sessions.
+
+**Links to my Workshop Task Plunks:**
 
 ## Project
 
