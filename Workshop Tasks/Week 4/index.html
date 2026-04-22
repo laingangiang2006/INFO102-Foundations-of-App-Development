@@ -1,0 +1,106 @@
+<!doctype html>
+<html>
+<head>
+<title>INFO102 Workshop on Vue</title>
+<style> 
+#app {
+width: 90%;
+padding: 20px;
+border-radius: 20px;
+background-color: lightskyblue;
+}
+</style>
+<script src="https://unpkg.com/vue@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/brython@3/brython.min.js">
+</script>
+<script src="https://cdn.jsdelivr.net/npm/brython@3/brython_stdlib.js">
+</script>
+</head>
+<body onload="brython(1)">
+<h1>INFO 102 Workshop on Vue</h1>
+<b>Instructions:</b> Edit the HTML file (which contains Python code and Vue declarations) to create a quiz that tests the user on multiplication. It should:
+<ol>
+<li> Initially show a "new game" button with instructions</li>
+<li> Once a new game has been started, it should show a multiplication problem (e.g. "8 x 7") and ask the user to enter their answer.</li>
+<li> Feedback ("Right!" or "Wrong!") is given on the answer, and then it gives another problem.</li>
+<li> After ten problems it shows an overall score (e.g. "You got 8 out of 10 right!") along with a "Another game?" button.</li>
+</ol>
+The following image shows the interaction as a state diagram:
+<center>
+<img src="state.png">
+</center>
+Once you are done, you can extend the game in a number of ways (which require you to modify the Python code, not just add Vue declarations): 
+<ul>
+<li>Add to the problem view an indication of the number of the problem (e.g. "This is problem 3 out of 10").</li>
+<li>Instead of asking a multiplication problem, it could randomly ask either a multiplication, addition, or subtraction problem.</li>
+<li>Instead of moving to the next problem regardless of whether the answer is correct, the program could only move to the next problem once a correct answer is given. In this case instead of counting how many answers were correct, it should count how many answers were wrong along the way.</li>
+</ul>
+<div id="app">
+<form>
+<!-- Need to add Vue  declarations below -->
+<span v-if="status === 0"> <!-- Initial View -->
+<p>This game tests your knowledge of multiplication. You will be given 10 questions to answer. How well can you score?</p><p>To start click: 
+<input type="button" value="Start game" v-on:click="newGame"></p>
+</span>
+<span v-if="status === 1"> <!-- The multiplication problem -->
+<!-- Feedback ... -->
+<span v-if="feedbackgiven"><span v-if="correct">Right!<br></span><span v-if="!correct">Wrong!<br></span></span>
+<!-- the (next) problem -->
+  What is {{first}} x {{second}}? <input type="number" v-model="guess"> <input type="button" value="Check!" v-on:click="checkguess">
+</span>
+<span v-if="status === 2"> <!-- The score screen -->
+  You got {{correctGuesses}} out of 10 correct. <input type="button" value="Another game?" v-on:click="newGame">
+</span>
+<form>
+</form>
+</div>
+<script type="text/python">
+from browser import window
+from random import randint
+# Python code to generate two random numbers in the range 2-12
+def newProblem():
+  app.first = randint(int(2), int(12))
+  app.second = randint(int(2), int(12))
+  app.guess = 0
+  print("newProblem: " + str(app.first) + "," + str(app.second))
+# Python code to start a new game 
+def newGame(ev):
+  app.feedbackgiven=0
+  app.numberOfGuesses=0
+  app.correctGuesses=0
+  app.correct=0
+  app.status=1
+  newProblem()
+# Python code to check a guess - and if it's the last problem, change status 
+def checkguess(ev):
+  app.feedbackgiven=1
+  app.numberOfGuesses = app.numberOfGuesses + 1
+  if int(app.guess) == app.first * app.second:
+    app.correctGuesses = app.correctGuesses +1
+    app.correct = 1
+  else: 
+    app.correct = 0
+  if app.numberOfGuesses<10:
+    newProblem()
+  else:
+    app.status=2
+app = window.Vue.new({
+  'el': '#app',
+  'data': {
+  'feedbackgiven' :0, # Has feedback been given
+  'first' :0, # The first random number in the problem
+  'second' :0, # The second random number in the problem
+  'guess' : 0, # The user's guess
+  'numberOfGuesses' :0, # How many guesses have been made
+  'correctGuesses' : 0, # How many correct guesses have been made
+  'correct' : 0, # Is the most recent guess correct? 0 = no, 1 = yes
+  'status' : 0, # 0 = have not started game, 1 = game in progress, 2 = game done
+  },
+  'methods': {
+  'newGame' : newGame,
+  'checkguess' : checkguess,
+  }
+})
+</script>
+</body>
+</html>
