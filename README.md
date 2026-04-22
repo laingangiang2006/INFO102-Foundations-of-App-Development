@@ -14,6 +14,6 @@ These tasks are what I am given to practice in my workshop sessions.
 
 ## Project
 
-This is my graded project for this course. It carries the most weight among all graded items.
+This is my graded group project for this course. I worked on this project with my teammate, Diksha Patel. It carries the most weight among all graded items.
 
 > *All work in this repository is my own, completed as part of my studies.*
