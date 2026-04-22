@@ -1,0 +1,108 @@
+<!doctype html>
+
+<html>
+  <script src="https://unpkg.com/vue@2"></script>
+  <!-- Import package to enable Python -->
+  <script src="https://cdn.jsdelivr.net/npm/brython@3/brython.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/brython@3/brython_stdlib.js"></script>
+</head>
+<!-- Note the onload attribute which initialises Python -->
+<body onload="brython(1)">
+
+<div id="app">
+<input type="button" value="Go!" @click="go"> (click me to run the Python <tt>go</tt>)<br>
+<h2>Output</h2>
+<textarea cols=60 rows=15>
+{{output}}
+</textarea>
+</div>
+
+<!-- For this WWP we are putting the Python in the main HTML page. -->
+<script type="text/python">
+from browser import window
+
+# We define some variables ...
+
+# a number 
+costs = 0
+# and a list 
+shopping = ["Apples","Bananas","Chocolate"]
+# and a list of dictionaries
+course_details = [
+  {'code':'INFO101', 'name':'Intro to Information Systems', 'enrolments':142},
+  {'code':'INFO102', 'name':'Intro to App Dev', 'enrolments':82},
+  {'code':'INFO103', 'name':'Intro to Databases', 'enrolments':97},
+  ]
+
+# Use show(s) to add something to the output text area (instead of Python print)
+def show(s):
+  app.output += str(s)+"\n"
+
+def go(ev):
+  global costs, shopping, course_details 
+  show("go called.")
+
+  # ** PUT YOUR PYTHON CODE BELOW **
+  # THINGS TO DO:
+  # * If costs is 0, what do the following two lines of code do? Predict what they will do, and then check by adding a line to print how the value of "costs" (using show()) before and after
+  show("Costs before: " + str(costs))
+  costs = costs + 10
+  costs = costs + 15
+  costs = costs - 5
+  show("Costs after:" + str(costs))
+
+  # * Write a line of code to make cost 20 higher 
+  costs = costs + 20
+
+  # * Write code to change "Bananas" to "Pears" in the shopping list
+  shopping[1] = "Pears"
+
+  # * Write code to remove the first element in the shopping list
+  del shopping[0]
+
+  # * Write code to add "Dates" to the shopping list
+  shopping.append("Dates")
+
+  # * Print (using show()) the whole shopping list 
+  show(shopping)
+
+  # * Write code to decrease the enrolments of INFO 102 (as recorded in the course_details variable) by 3
+  for course in course_details:
+    if course["code"] == "INFO102":
+      course["enrolments"] = course["enrolments"] - 3
+
+  # * Write code to add to the course details of INFO 103 a 'prequisite' which is "INFO101"
+  for course in course_details:
+    if course["code"] == "INFO103":
+      course["prequisite"] = "INFO101"
+
+  # * Write code (using a "for" loop) to print out (using show()) a list of the courses and for each course how many students are enrolled in it 
+  for course in course_details:
+    show(course["code"] + " - " + course["name"] + " has "+ str(course["enrolments"]) + " enrolments")
+
+  # * Define a function check_course(course) that takes a dictionary with the course details, and checks if the course has enough students enrolled. If there are fewer than 90 students then it should return a string with a messsage saying "too few students" otherwise it should return the string "ok"
+  def check_course(course):
+    if course["enrolments"] < 90:
+      return str("Too few students.")
+    else:
+      return str("Ok.")
+
+  # * Call the function check_course with INFO 102 and show() the results
+  for course in course_details:
+    if course["code"] == "INFO102":
+      show(check_course(course))
+# You can ignore what follows - Vue hasn't yet been covered 
+
+app = window.Vue.new({
+  'el': '#app',
+  'data': {
+  'output' : ""
+  },
+  'methods': {
+  'go' : go
+  }
+})
+</script>
+
+</body>
+</html>
