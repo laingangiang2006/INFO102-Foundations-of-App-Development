@@ -1,6 +1,6 @@
 # INFO102 - Foundations of App Development
 
-This repository contains all the tasks and projects I have completed for **INFO102 - Foundations of App Development**.
+This repository contains all the tasks and projects I have completed for INFO102 - Foundations of App Development.
 
 Graded items in this course are **Weekly Work Products** and **Project**.
 
