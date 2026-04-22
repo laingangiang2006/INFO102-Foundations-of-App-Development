@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="lib/style.css">
+  <script src="lib/script.js"></script>
+</head>
+
+<!-- BUG 6 FIX: Added opening <body> tag — the original jumped straight from
+     </head> into content with no <body> tag. Without it the document structure
+     is invalid and browser rendering of styles/layout may be unpredictable. -->
+<body>
+
+<h2>HTML and CSS WWP</h2>
+<div>
+  <h3>Success!</h3>
+  <p>Your message has been sent.</p>
+  <br>
+
+  <!-- BUG 7 FIX: Changed action="index.html" — this was already correct in the
+       original, but note the button uses id="submit" which correctly picks up the
+       yellow/blue #submit styles from the shared CSS file. No change needed here;
+       the real fix was Bug 4 (making index.html's submit button also use id="submit"). -->
+  <form action="index.html">
+    <input type="submit" id="submit" value="Go Back to Form">
+  </form>
+</div>
+
+</body>
+</html>
