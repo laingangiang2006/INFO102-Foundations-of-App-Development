@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+<head>
+<title>INFO102 WWP 3 Vue</title>
+<script src="https://unpkg.com/vue@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/brython@3/brython.min.js">
+</script>
+<script src="https://cdn.jsdelivr.net/npm/brython@3/brython_stdlib.js">
+</script>
+</head>
+<body onload="brython(1)">
+
+<h1>INFO 102 WWP 3: Vue</h1>
+<b>Instructions:</b> Edit the HTML file (which contains Python code and Vue declarations) to make the guessing game functional. In particular:
+<ul>
+  <li> Only the "new game" button should be visible initially</li>
+  <li> Once a new game has been started, the field to enter a number and the button to make a guess should both become visible</li>
+  <li> Feedback on the guess (e.g. too high) should only become visible once a guess has been made</li>
+</ul>
+
+<div id="app">
+  <!-- Need to add v-model, v-if and v-on:click declarations below -->
+  <form>
+    <span v-if="gamestarted">
+      Guess: <input type="number" v-model="guess">
+      <input type="button" value="Guess!" v-on:click="checkguess">
+    </span>
+    <span v-if="feedbackgiven">{{ feedback }}</span>
+    <br>
+    <input type="button" value="New game!" v-on:click="genrandom">
+  </form>
+</div>
+
+<script type="text/python">
+from browser import window
+from random import randint
+
+# Python function to generate a random even number in the range 2-200
+def genrandom(ev):
+  app.secret = 2*randint(int(1), int(100))
+  app.feedbackgiven = 0
+  app.gamestarted = 1
+
+# Check the user's guess and give feedback 
+def checkguess(ev):
+  app.feedbackgiven=1
+  if int(app.guess) % 2 == 1:
+    app.feedback = 'Guess must be even'
+  elif int(app.guess)>app.secret: 
+    app.feedback='too high'
+  elif int(app.guess)<app.secret:
+    app.feedback='too low' 
+  else:
+    app.feedback='correct!'
+
+app = window.Vue.new({
+  'el': '#app',
+  'data': {
+    'secret': 0,
+    'guess': 0,
+    'feedback': '',
+    'gamestarted': 0,
+    'feedbackgiven': 0,
+  },
+  'methods': {
+    'genrandom': genrandom,
+    'checkguess': checkguess,
+  }
+})
+</script>
+
+</body>
+</html>
