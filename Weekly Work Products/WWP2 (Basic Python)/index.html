@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+<script src="https://unpkg.com/vue@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/brython@3/brython.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/brython@3/brython_stdlib.js"></script>
+</head>
+<body onload="brython(1)">
+<div id="app">
+  <input type="button" value="Go!" @click="go"> <br>
+  <h2>Output</h2>
+  <textarea cols=60 rows=15>{{output}}</textarea>
+</div>
+
+<script type="text/python">
+from browser import window
+
+# Two separate variables hold related data: workshopList tracks which workshops exist,
+# while registrations tracks enrolment counts — but neither enforces consistency with
+# the other. A workshop can appear in one but not the other (e.g. "Networking Techniques"
+# is in workshopList but has no entry in registrations). Fix: use a single dict as the
+# source of truth, e.g. {name: count}, and derive the list of workshops from its keys.
+registrations = {"Writing Workshop": 12}
+workshopList = ["Networking Techniques", "Writing Workshop"]
+
+# Changed: checkEnrolment now iterates over all workshops in workshopList,
+# rather than accepting a single workshop name as a parameter.
+def checkEnrolment():
+    print("checkEnrolment called")
+    for workshop in workshopList:
+        count = registrations.get(workshop, 0)
+        if count < 10:
+            app.output += f'"{workshop}" has too few registered participants: {count} (needs at least 10)\n\n'
+        else:
+            app.output += f'"{workshop}" has sufficient registrations: {count}\n\n'
+
+def go(ev):
+    try:
+        app.output = "Initially:\n" + str(workshopList) + "\n" + str(registrations) + "\n\n"
+
+        # Adds "Reading Workshop" to the end of workshopList.
+        workshopList.append("Reading Workshop")
+
+        # (1) This line reads the key workshopList[0] (i.e. "Networking Techniques") from
+        #     registrations and increments it.
+        # (2) It causes a KeyError if workshopList[0] is not a key in registrations —
+        #     which is the case here since "Networking Techniques" has no entry.
+        # (3) Fix: use .get() with a default of 0 so missing keys don't raise an error.
+        registrations[workshopList[0]] = registrations.get(workshopList[0], 0) + 1
+
+        # registrations is a dict with string keys, not a list — so integer index 0 is not
+        # a valid key and raises a KeyError. Fix: use the actual string key instead.
+        registrations["Networking Techniques"] = registrations.get("Networking Techniques", 0) + 1
+
+        app.output += str(workshopList) + "\n\n"
+        app.output += str(registrations) + "\n\n"
+
+        # Now calls checkEnrolment with no arguments; it checks all workshops internally.
+        checkEnrolment()
+
+    except:
+        app.output += "** Something went wrong! **\n\n"
+
+app = window.Vue.new({
+    'el': '#app',
+    'data': {
+        'output': ""
+    },
+    'methods': {
+        'go': go
+    }
+})
+</script>
+</body>
+</html>
