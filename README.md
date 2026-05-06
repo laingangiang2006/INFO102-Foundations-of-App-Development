@@ -25,6 +25,7 @@ These tasks are what I am given to practice in my workshop sessions.
 1. Week 3 Workshop Task: [Click here](https://plnkr.co/edit/IEJayBDkk3VtfkzK?preview)
 2. Week 4 Workshop Task: [Click here](https://plnkr.co/edit/fwhDrkeH3xYuq7hP)
 3. Week 5 Workshop Task: [Click here](https://plnkr.co/edit/Psw1N32iJz6XVuX8)
+4. Week 6 Workshop Task: [Click here](https://plnkr.co/edit/iljv20jwffdBOIdC?open=lib%252Findex.html)
 
 ## Project
 
