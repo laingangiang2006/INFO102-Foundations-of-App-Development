@@ -1,0 +1,149 @@
+<!doctype html>
+
+<html>
+  <head>
+    <title>INFO102 Workshop on Python loops</title>
+    <style>
+#app {
+  width: 80%;
+  padding: 20px;
+  border-radius: 20px;
+  background-color: lightskyblue;
+}
+
+.important {
+  color: red;
+}
+
+.done {
+  text-decoration: line-through;
+}
+</style>
+    <script src="https://unpkg.com/vue@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/brython@3/brython.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/brython@3/brython_stdlib.js"></script>
+  </head>
+
+<body onload="brython(1)">
+    <h1>INFO102 Workshop on Python loops</h1>
+    
+    <b>Instructions:</b> 
+    <ol>
+      <li> Extend the app below so that the numbers "4" and "12" are replaced by the actual count of items completed and total items in the list. 
+        <br>Hint: you can define a python function to calculate these, and make sure it's called whenever there is a change (e.g. adding an item or marking an item as done)</li>
+      <li> Extend the app so that the number "2" is replaced by the actual number of completed tasks that were important. 
+        <br>Hint: when an item is marked as done, its (old) type is stored in 'oldtype'</li>
+    </ol>
+
+    <div id="app">
+      <!-- Login page -->
+      <span v-if="page==0">
+      <h1>Login</h1>
+      <form>
+        <span v-if="error==1">Wrong login - attempt {{wrongLogins}}</span>
+        Login: <input type="text" v-model="login"> <br>
+        Password: <input type="password" v-model="password"> <br>
+        <input type="button" value="Login!" v-on:click="loginUser">
+      </form>
+      </span>
+
+      <!-- List of tasks -->
+      <span v-if="page==1">
+        <h1>Secret list of tasks for Dr Evil</h1>
+        You have completed {{ donecount }} out of {{ items.length }} tasks, {{ count_important_task() }} of which was/were important.
+        <ul>
+          <li v-for="(item, index) in items" v-bind:class="item['type']">{{item['text']}} <input type="button" value="X" @click="markdone" v-bind:id="index"></li>
+        </ul>
+      New Task: <input type="text" name="NewTask" v-model="newtask"> 
+      <input type="button" value="Add Task" @click="addtask"> 
+      <input type="button" value="Add Important Task" @click="addimportanttask"> 
+      <br><input type="button" value="Logout" @click="logoutUser">
+      </span>
+    </div> <!-- end of app -->
+
+<!-- For this demo we are putting the Python in the main HTML page. -->
+<script type="text/python">
+from browser import window
+
+def loginUser(ev):
+  print("loginUser called")
+  if app.login=="DrEvil":
+    app.page=1
+    print("Hello Dr Evil")
+  else:
+    app.error = 1
+    app.wrongLogins = app.wrongLogins + 1 
+
+def logoutUser(ev):
+  print("logoutUser called")
+  app.page = 0
+
+def countdone(ev=None):
+  try:
+    return sum(1 for item in app.items if item['type'] == 'done')
+  except:
+    return 0
+
+def count_important_task(ev=None):
+  try:
+   return sum(1 for item in app.items
+    if item['type'] == 'done' and item.get('oldtype') == 'important')
+  except:
+    return 0
+
+# mark a task as done
+def markdone(ev):
+  print("markdone called")
+  print(f"with id = {ev.target.id}")
+  # need to convert the id to an integer 
+  index = int(ev.target.id)
+  # if the item is already done then do nothing 
+  if app.items[index]['type'] != 'done':
+    # store the old type in 'oldtype'
+    app.items[index]['oldtype'] = app.items[index]['type']
+    app.items[index]['type'] = 'done'
+    window.Vue.set(app.items, index, {
+        'text': app.items[index]['text'],
+        'oldtype': app.items[index]['oldtype'],
+        'type': 'done'
+    })
+    app.donecount = app.donecount + 1
+  else:
+    print("item already done!")
+
+def addtask(ev):
+  app.items.append({'text':app.newtask,'type':'normal'})
+
+# add a task as important 
+def addimportanttask(ev):
+    app.items.append({'text':app.newtask,'type':'important'})
+
+app = window.Vue.new({
+  'el': '#app',
+  'data': {
+  # Variables go here 
+  'items' : [{'text':'Acquire shark','type':'done'},{'text':'Acquire laser','type':'normal'},{'text':'Attach laser securely','type':'important'},{'text':'Capture Austin Powers','type':'normal'}],
+  # Add other variables below
+  'login' : '',
+  'password' : '',
+  'page' : 1, # by default start off logged in 
+  'error' : 0,
+  'wrongLogins' : 0,
+  'newtask' : 'new task description',
+  'donecount': 1,
+  },
+  'methods': {
+  # Python functions used by Vue go here
+  'loginUser' : loginUser,
+  'logoutUser' : logoutUser,
+  'markdone' : markdone,
+  'addtask' : addtask,
+  'addimportanttask' : addimportanttask,
+  'countdone': countdone,
+  'count_important_task': count_important_task,
+  }
+})
+
+</script>
+</body>
+</html>
