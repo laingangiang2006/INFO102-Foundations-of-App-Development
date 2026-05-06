@@ -1,0 +1,195 @@
+<!doctype html>
+<html>
+<head>
+<title>INFO102 - My Watchlist</title>
+<style>
+  body {
+    background-color: #e8f4f8;
+    font-family: sans-serif;
+  }
+  h1 {
+    text-align: center;
+    color: #1a3a4a;
+  }
+  #app {
+    width: 90%;
+    max-width: 700px;
+    margin: 20px auto;
+    padding: 20px;
+    border-radius: 20px;
+    background-color: lightskyblue;
+  }
+  .controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .controls select, .controls input {
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: none;
+    font-size: 14px;
+  }
+  .controls input {
+    flex: 1;
+    min-width: 140px;
+  }
+  .stats {
+    font-size: 14px;
+    color: #1a3a4a;
+    margin-bottom: 12px;
+  }
+  .movie-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .movie-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: white;
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    transition: opacity 0.2s;
+  }
+  .movie-card.watched {
+    opacity: 0.6;
+  }
+  .movie-card input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #1a7abf;
+  }
+  .movie-info {
+    flex: 1;
+  }
+  .movie-title {
+    font-weight: bold;
+    font-size: 16px;
+    color: #1a3a4a;
+    text-decoration: none;
+  }
+  .movie-card.watched .movie-title {
+    text-decoration: line-through;
+    color: #777;
+  }
+  .genre-badge {
+    display: inline-block;
+    background: #cce8f4;
+    color: #1a3a4a;
+    font-size: 12px;
+    border-radius: 20px;
+    padding: 2px 10px;
+    margin-top: 4px;
+  }
+  .watched-label {
+    font-size: 12px;
+    color: #1a7abf;
+    font-weight: bold;
+  }
+  .empty {
+    text-align: center;
+    color: #555;
+    padding: 20px;
+    font-style: italic;
+  }
+</style>
+<script src="https://unpkg.com/vue@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/brython@3/brython.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/brython@3/brython_stdlib.js"></script>
+</head>
+<body onload="brython(1)">
+<h1>🎬 My Watchlist</h1>
+<div id="app">
+  <div class="controls">
+    <input v-model="search" placeholder="🔍 Search movies...">
+    <select v-model="filterGenre">
+      <option value="">All Genres</option>
+      <option v-for="g in genres" :value="g">{{ g }}</option>
+    </select>
+    <select v-model="filterWatched">
+      <option value="">All</option>
+      <option value="unwatched">Unwatched</option>
+      <option value="watched">Watched</option>
+    </select>
+  </div>
+
+  <div class="stats">
+    📽️ Showing {{ filteredMovies.length }} of {{ movies.length }} movies —
+    ✅ {{ watchedCount }} watched, 🎯 {{ unwatchedCount }} to go
+  </div>
+
+  <ul class="movie-list">
+    <li
+      v-for="movie in filteredMovies"
+      :key="movie.title"
+      class="movie-card"
+      :class="{ watched: movie.watched }"
+    >
+      <input
+        type="checkbox"
+        :checked="movie.watched"
+        @change="toggle_watched(movie)"
+      >
+      <div class="movie-info">
+        <div class="movie-title">{{ movie.title }}</div>
+        <span class="genre-badge">{{ movie.genre }}</span>
+      </div>
+      <span v-if="movie.watched" class="watched-label">✔ Watched</span>
+    </li>
+    <li v-if="filteredMovies.length === 0" class="empty">
+      No movies match your filters.
+    </li>
+  </ul>
+</div>
+
+<script type="text/python">
+from browser import window
+
+movies = [
+  {'title': 'The Shawshank Redemption', 'genre': 'Drama', 'watched': False},
+  {'title': 'Spirited Away', 'genre': 'Animation', 'watched': True},
+  {'title': 'The Dark Knight', 'genre': 'Action', 'watched': False},
+  {'title': 'Parasite', 'genre': 'Thriller', 'watched': True},
+  {'title': 'Everything Everywhere All at Once', 'genre': 'Sci-Fi', 'watched': False},
+]
+
+def toggle_watched(movie):
+    movie['watched'] = not movie['watched']
+
+app = window.Vue.new({
+  'el': '#app',
+  'data': {
+    'movies': movies,
+    'search': '',
+    'filterGenre': '',
+    'filterWatched': '',
+  },
+  'computed': {
+    'genres': lambda self: sorted(set(m['genre'] for m in self.movies)),
+    'watchedCount': lambda self: sum(1 for m in self.movies if m['watched']),
+    'unwatchedCount': lambda self: sum(1 for m in self.movies if not m['watched']),
+    'filteredMovies': lambda self: [
+      m for m in self.movies
+      if (self.search.lower() in m['title'].lower())
+      and (self.filterGenre == '' or m['genre'] == self.filterGenre)
+      and (
+        self.filterWatched == '' or
+        (self.filterWatched == 'watched' and m['watched']) or
+        (self.filterWatched == 'unwatched' and not m['watched'])
+      )
+    ],
+  },
+  'methods': {
+    'toggle_watched': lambda self, movie: toggle_watched(movie),
+  }
+})
+</script>
+</body>
+</html>
