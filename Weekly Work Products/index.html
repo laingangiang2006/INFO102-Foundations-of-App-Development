@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+<head>
+<title>INFO102 WWP 5: Coding with AI</title>
+<style>
+#app {
+  width: 90%;
+  max-width: 700px;
+  margin: 20px auto;
+  padding: 20px;
+  border-radius: 20px;
+  background-color: lightskyblue;
+  font-family: sans-serif;
+}
+.watched {
+  color: grey;
+  text-decoration: line-through;
+}
+button {
+  margin-left: 6px;
+  padding: 4px 8px;
+}
+li {
+  margin-bottom: 6px;
+}
+.count {
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+</style>
+<script src="https://unpkg.com/vue@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/brython@3/brython.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/brython@3/brython_stdlib.js"></script>
+</head>
+<body onload="brython(1)">
+<h1 style="text-align: center;">My Watchlist</h1>
+<div id="app">
+  <!-- Count of watched vs total movies -->
+  <p class="count">You have watched {{ watched_count }} out of {{ movies.length }} movies.</p>
+  <ul>
+    <li v-for="(movie, index) in movies"
+        v-bind:class="{ watched: movie.watched }">
+      {{ movie.title }} — {{ movie.genre }}
+      <!-- Remove button to delete the movie from the list -->
+      <button v-on:click="remove_movie(index)">Remove</button>
+    </li>
+  </ul>
+</div>
+<script type="text/python">
+from browser import window
+
+movies = [
+  {'title': 'The Shawshank Redemption', 'genre': 'Drama', 'watched': False},
+  {'title': 'Spirited Away', 'genre': 'Animation', 'watched': True},
+  {'title': 'The Dark Knight', 'genre': 'Action', 'watched': False},
+  {'title': 'Parasite', 'genre': 'Thriller', 'watched': True},
+  {'title': 'Everything Everywhere All at Once', 'genre': 'Sci-Fi', 'watched': False},
+]
+
+# Removes a movie from the list by its index using Vue's $set-compatible splice method
+def remove_movie(index):
+    app.movies.splice(index, 1)
+
+# --- Vue instance ---
+app = window.Vue.new({
+  'el': '#app',
+  'data': {
+    'movies': movies,
+  },
+  'computed': {
+    # Counts how many movies have watched: True — told Copilot to follow the same
+    # pattern as counting completed tasks: filter the list and return its length.
+    'watched_count': lambda self: len([m for m in self.movies if m.watched]),
+  },
+  'methods': {
+    'remove_movie': remove_movie,
+  }
+})
+</script>
+</body>
+</html>
