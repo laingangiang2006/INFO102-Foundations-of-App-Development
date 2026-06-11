@@ -1,0 +1,149 @@
+<!doctype html>
+<html>
+<head>
+<title>INFO102 WWP 6: Iterative Dialogue with AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://unpkg.com/vue@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/brython@3/brython.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/brython@3/brython_stdlib.js"></script>
+</head>
+<body onload="brython(1)">
+
+<div id="app">
+  <h2>My Watchlist</h2>
+  <p class="subtitle">Track what you've seen &amp; what's next</p>
+
+  <!-- Progress -->
+  <div class="progress-wrap">
+    <div class="progress-label">Progress</div>
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill"
+           v-bind:style="{ width: (total_count ? (watched_count / total_count * 100) : 0) + '%' }">
+      </div>
+    </div>
+    <div class="progress-numbers">
+      {{ watched_count }} <span>of {{ total_count }} watched</span>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="search-wrap">
+    <span class="search-icon">⌕</span>
+    <input type="text"
+           v-model="search"
+           placeholder="Search by title or genre" />
+  </div>
+
+  <!-- Add form -->
+  <div class="add-card">
+    <div class="add-card-title">Add a movie</div>
+    <div class="add-inputs">
+      <input type="text" v-model="new_title" placeholder="Title" />
+      <input type="text" v-model="new_genre" placeholder="Genre" style="max-width: 160px;" />
+    </div>
+    <button class="btn-add" v-on:click="add_movie">+ Add to Watchlist</button>
+  </div>
+
+  <!-- Movie list -->
+  <ul>
+    <li v-for="(movie, index) in filtered_movies()"
+        v-bind:class="{ watched: movie.watched }">
+
+      <!-- ← Remove on the LEFT -->
+      <button class="btn-remove"
+              v-bind:data-index="index"
+              v-on:click="remove_movie"
+              title="Remove">✕</button>
+
+      <div class="movie-info">
+        <div class="movie-title">{{ movie.title }}</div>
+        <div class="movie-genre">{{ movie.genre }}</div>
+      </div>
+
+      <!-- Watched toggle on the RIGHT -->
+      <button class="btn-watched"
+              v-bind:data-index="index"
+              v-on:click="toggle_watched">
+        {{ movie.watched ? '✓ Watched' : 'Mark watched' }}
+      </button>
+    </li>
+
+    <li v-if="filtered_movies().length === 0" style="background:none;border:none;">
+      <div class="empty">No movies found. Add one above!</div>
+    </li>
+  </ul>
+</div>
+
+<script type="text/python">
+from browser import window
+
+movies = [
+  {'title': 'The Shawshank Redemption', 'genre': 'Drama', 'watched': False},
+  {'title': 'Spirited Away', 'genre': 'Animation', 'watched': True},
+  {'title': 'The Dark Knight', 'genre': 'Action', 'watched': False},
+  {'title': 'Parasite', 'genre': 'Thriller', 'watched': True},
+  {'title': 'Everything Everywhere All at Once', 'genre': 'Sci-Fi', 'watched': False},
+]
+
+def update_counts():
+    app.total_count = len(app.movies)
+    app.watched_count = sum(1 for m in app.movies if m['watched'])
+
+def remove_movie(ev):
+    index = int(ev.target.dataset.index)
+    app.movies.pop(index)
+    update_counts()
+
+def toggle_watched(ev):
+    index = int(ev.target.dataset.index)
+    filtered = filtered_movies()
+    movie = filtered[index]
+    real_index = list(app.movies).index(movie)
+    app.movies[real_index]['watched'] = not app.movies[real_index]['watched']
+    update_counts()
+
+def add_movie(ev):
+    title = app.new_title.strip()
+    genre = app.new_genre.strip()
+    if title and genre:
+        app.movies.append({
+            'title': title,
+            'genre': genre,
+            'watched': False
+        })
+        app.new_title = ""
+        app.new_genre = ""
+        update_counts()
+
+def filtered_movies():
+    query = app.search.lower()
+    if not query:
+        return app.movies
+    return [
+        m for m in app.movies
+        if query in m['title'].lower() or query in m['genre'].lower()
+    ]
+
+app = window.Vue.new({
+  'el': '#app',
+  'data': {
+    'movies': movies,
+    'total_count': 0,
+    'watched_count': 0,
+    'search': "",
+    'new_title': "",
+    'new_genre': "",
+  },
+  'methods': {
+    'remove_movie': remove_movie,
+    'toggle_watched': toggle_watched,
+    'add_movie': add_movie,
+    'filtered_movies': filtered_movies,
+  }
+})
+update_counts()
+</script>
+</body>
+</html>
