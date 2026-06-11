@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WAID - Course Assignment App</title>
+    <script src="https://unpkg.com/vue@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/brython@3/brython.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/brython@3/brython_stdlib.js"></script>
+    <link href="style.css" rel="stylesheet" />
+  </head>
+
+  <body onload="brython()">
+    <div id="app">
+
+      <div v-if="loading" class="loading-screen">
+        <div class="loading-inner">
+          <div class="loading-logo">W</div>
+          <div class="loading-text">Loading WAID system…</div>
+        </div>
+      </div>
+
+      <div v-else>
+
+        <header class="navbar">
+          <div class="nav-brand">
+            <div class="nav-logo-mark">W</div>
+            <div class="nav-brand-text">
+              <span class="nav-title">WAID</span>
+              <span class="nav-sub">Wellington Academy of Interstellar Diplomacy</span>
+            </div>
+          </div>
+
+          <div class="nav-actions">
+            <button class="nav-btn" :class="{active: view === 'directory'}" @click="view = 'directory'">
+              Directory
+            </button>
+            <button v-if="loggedIn" class="nav-btn" :class="{active: view === 'feed'}" @click="view = 'feed'">
+              My Courses
+              <span v-if="enrolments.length" class="nav-badge">{{ enrolments.length }}</span>
+            </button>
+            <div class="nav-divider"></div>
+            <button v-if="!loggedIn" class="nav-btn nav-login" @click="showLogin = true">Log In</button>
+            <div v-else class="nav-student">
+              <span class="nav-student-info">
+                {{ student.name }}
+                <span class="nav-gpa">GPA {{ student.gpa }}</span>
+                <span v-if="student.domestic === 'interplanetary'" class="nav-planet">🚀 Interplanetary</span>
+              </span>
+              <button class="nav-btn nav-logout" @click="logout">Log Out</button>
+            </div>
+          </div>
+        </header>
+
+        <div class="toast-container" v-if="toast">
+          <div class="toast" :class="'toast-' + toastType">{{ toast }}</div>
+        </div>
+
+        <div class="modal-backdrop" v-if="showLogin" @click.self="cancelLogin">
+          <div class="login-modal">
+            <h3>Login to WAID</h3>
+            <p class="login-sub">Enter your student credentials to enrol in courses.</p>
+            <div class="form-group">
+              <label>Username</label>
+              <input v-model="loginForm.name" placeholder="Username" @keyup.enter="login" />
+            </div>
+            <div class="form-group">
+              <label>Password</label>
+              <input v-model="loginForm.password" type="password" placeholder="Password" @keyup.enter="login" />
+            </div>
+            <p v-if="loginError" class="login-error">{{ loginError }}</p>
+            <div class="login-actions">
+              <button class="btn btn-primary" @click="login">Login</button>
+              <button class="btn btn-ghost"   @click="cancelLogin">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-backdrop" v-if="detailCourse" @click.self="closeDetail">
+          <div class="detail-modal">
+            <div class="detail-header">
+              <div>
+                <div class="detail-code">{{ detailCourse.code }}</div>
+                <h3 class="detail-title">{{ detailCourse.name }}</h3>
+              </div>
+              <span class="trimester-badge">T{{ detailCourse.trimester }}</span>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Overview</div>
+              <div>{{ detailCourse.overview }}</div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Lecture Time</div>
+              <div>
+                {{ detailCourse.lectureTimes[0] }}
+                {{ detailCourse.lectureTimes[1] }} –
+                {{ detailCourse.lectureTimes[2] }}
+              </div>
+            </div>
+            <div class="detail-section" v-if="detailCourse.workshopTimes && detailCourse.workshopTimes.length">
+              <div class="detail-label">Workshop Options</div>
+              <div v-for="w in detailCourse.workshopTimes" class="workshop-option">
+                {{ w[0] }} {{ w[1] }} – {{ w[2] }}
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Prerequisite</div>
+              <div>{{ detailCourse.prerequisite || 'None' }}</div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Year</div>
+              <div>{{ detailCourse.year }}</div>
+            </div>
+            <button class="btn btn-ghost" @click="closeDetail">Close</button>
+          </div>
+        </div>
+
+        <div class="modal-backdrop" v-if="approvalModal" @click.self="cancelApproval">
+          <div class="detail-modal">
+            <h3 class="approval-title">Associate Dean Approval Required</h3>
+            <p>{{ approvalModal.reason }}</p>
+            <p class="approval-note">
+              The course will be added with <strong>Pending Approval</strong> status.
+              The Associate Dean will review your request.
+            </p>
+            <div class="login-actions">
+              <button class="btn btn-primary" @click="confirmApproval">Request Approval</button>
+              <button class="btn btn-ghost"   @click="cancelApproval">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <section v-if="view === 'directory'" class="page-section">
+          <div class="page-header">
+            <h1 class="page-title">Course Directory</h1>
+          </div>
+
+          <div class="filter-bar">
+            <span class="filter-label">Trimester:</span>
+            <button class="filter-btn" :class="{active: trimFilter === 'all'}" @click="trimFilter = 'all'">All</button>
+            <button class="filter-btn" :class="{active: trimFilter === '1'}"   @click="trimFilter = '1'">T1</button>
+            <button class="filter-btn" :class="{active: trimFilter === '2'}"   @click="trimFilter = '2'">T2</button>
+            <button class="filter-btn" :class="{active: trimFilter === '3'}"   @click="trimFilter = '3'">T3</button>
+          </div>
+
+          <div class="course-grid">
+            <div
+              v-for="course in filteredCourses"
+              :key="course.ID"
+              class="course-card"
+              :class="enrolmentStatuses[String(course.ID)] ? 'enrolled' : ''"
+            >
+              <div class="course-heading">
+                <div class="course-code">{{ course.code }}</div>
+                <span class="trimester-badge">T{{ course.trimester }}</span>
+              </div>
+              <div class="course-name">{{ course.name }}</div>
+              <div class="course-meta">{{ course.overview }}</div>
+
+              <div class="course-info-row">
+                <span class="info-icon">🕐</span>
+                <span>{{ course.lectureTimes[0] }} {{ course.lectureTimes[1] }} – {{ course.lectureTimes[2] }}</span>
+              </div>
+
+              <div class="course-info-row" v-if="course.prerequisite">
+                <span class="info-icon">📋</span>
+                <span><strong>Prereq:</strong> {{ course.prerequisite }}</span>
+              </div>
+
+              <div v-if="loggedIn && course.workshopTimes && course.workshopTimes.length" class="workshop-select-wrap">
+                <label class="form-label">Workshop</label>
+                <select class="form-select" @change="selectWorkshop(course, $event.target.value)">
+                  <option value="">Select a workshop…</option>
+                  <option
+                    v-for="w in course.workshopTimes"
+                    :value="w[0] + ' ' + w[1] + ' - ' + w[2]"
+                  >{{ w[0] }} {{ w[1] }} – {{ w[2] }}</option>
+                </select>
+              </div>
+
+              <div v-if="selectedWorkshops[String(course.ID)]" class="chosen-workshop">
+                ✅ {{ selectedWorkshops[String(course.ID)] }}
+              </div>
+
+              <div v-if="enrolmentStatuses[String(course.ID)]" class="enrolment-status-row">
+                <span class="status-badge" :class="statusClass[String(course.ID)]">
+                  {{ statusLabel[String(course.ID)] }}
+                </span>
+              </div>
+
+              <div class="card-actions">
+                <button class="btn btn-outline btn-sm" @click="openDetail(course)">Details</button>
+                <button v-if="!loggedIn" class="btn btn-primary btn-sm" @click="showLogin = true">Login to Enrol</button>
+                <button v-else-if="!enrolmentStatuses[String(course.ID)]" class="btn btn-primary btn-sm" @click="addCourse(course)">Enrol</button>
+                <span v-else class="enrolled-chip">Enrolled</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section v-if="view === 'feed' && loggedIn" class="page-section">
+          <div class="page-header">
+            <h1 class="page-title">My Courses</h1>
+            <p class="page-sub">Manage your enrolments, workshops, and schedule.</p>
+          </div>
+
+          <div v-if="enrolments.length === 0" class="empty-state">
+            <div class="empty-icon">📚</div>
+            <p>You haven't enrolled in any courses yet.</p>
+            <button class="btn btn-primary" @click="view = 'directory'">Browse Directory</button>
+          </div>
+
+          <div v-else>
+            <div v-for="trim in ['1','2','3']" :key="trim">
+              <div v-if="enrolmentsByTrim[trim] && enrolmentsByTrim[trim].length">
+                <h2 class="trimester-heading">Trimester {{ trim }}</h2>
+                <div class="course-grid">
+                  <div v-for="course in enrolmentsByTrim[trim]" :key="course.ID"
+                    class="course-card enrolled" :class="'status-card-' + (enrolmentStatuses[String(course.ID)] || '').replace(/ /g, '-')">
+                    <div class="course-heading">
+                      <div class="course-code">{{ course.code }}</div>
+                      <span class="status-badge" :class="statusClass[String(course.ID)]">
+                        {{ statusLabel[String(course.ID)] }}
+                      </span>
+                    </div>
+                    <div class="course-name">{{ course.name }}</div>
+
+                    <div class="course-info-row">
+                      <span class="info-icon">🕐</span>
+                      <span>{{ course.lectureTimes[0] }} {{ course.lectureTimes[1] }} – {{ course.lectureTimes[2] }}</span>
+                    </div>
+
+                    <div v-if="course.workshopTimes && course.workshopTimes.length" class="workshop-select-wrap">
+                      <label class="form-label">Workshop</label>
+                      <select
+                        class="form-select" :value="selectedWorkshops[String(course.ID)] || ''" @change="selectWorkshop(course, $event.target.value)">
+                        <option value="">Select a workshop…</option>
+                        <option v-for="w in course.workshopTimes" :value="w[0] + ' ' + w[1] + ' - ' + w[2]">{{ w[0] }} {{ w[1] }} – {{ w[2] }}</option>
+                      </select>
+                    </div>
+
+                    <div v-if="selectedWorkshops[String(course.ID)]" class="chosen-workshop">
+                      ✅ {{ selectedWorkshops[String(course.ID)] }}
+                    </div>
+
+                    <div class="card-actions">
+                      <button class="btn btn-outline btn-sm" @click="openDetail(course)">Details</button>
+                      <button class="btn btn-danger  btn-sm" @click="dropCourse(course)">Drop Course</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <script>
+      new Vue({
+        el: '#app',
+
+        data: {
+          courses:           [],
+          students:          [],
+          view:              'directory',
+          trimFilter:        'all',
+          loading:           true,
+          toast:             '',
+          toastType:         'success',
+          loggedIn:          false,
+          student:           null,
+          showLogin:         false,
+          loginForm:         { name: '', password: '' },
+          loginError:        '',
+          enrolments:        [],
+          enrolmentStatuses: {},
+          selectedWorkshops: {},
+          statusLabel:       {},
+          statusClass:       {},
+          enrolmentsByTrim:  {},
+          detailCourse:      null,
+          approvalModal:     null,
+        },
+
+        mounted() {
+          // Expose this Vue instance so Brython can write data into it
+          window.app = this;
+        },
+
+        computed: {
+          filteredCourses() {
+            if (this.trimFilter === 'all') return this.courses;
+            return this.courses.filter(c => String(c.trimester) === this.trimFilter);
+          },
+        },
+
+        methods: {
+          // ── Simple UI actions handled entirely in Vue ──────────────
+
+          closeDetail() {
+            this.detailCourse = null;
+          },
+
+          cancelLogin() {
+            this.loginForm  = { name: '', password: '' };
+            this.loginError = '';
+            this.showLogin  = false;
+          },
+
+          cancelApproval() {
+            this.approvalModal = null;
+          },
+
+          openDetail(course) {
+            this.detailCourse = course;
+          },
+
+          // ── Actions with business logic delegated to Brython ───────
+          // Brython overwrites window.pyHandler once it is ready.
+          // Until then, a friendly warning is shown instead of a crash.
+
+          _py(action, payload) {
+            if (window.pyHandler) {
+              window.pyHandler(action, payload || null);
+            } else {
+              console.warn('Brython not ready yet — action:', action);
+            }
+          },
+
+          login()                    { this._py('login'); },
+          logout()                   { this._py('logout'); },
+          addCourse(course)          { this._py('addCourse',        course); },
+          dropCourse(course)         { this._py('dropCourse',       course); },
+          selectWorkshop(course, v)  { this._py('selectWorkshop',  { course, value: v }); },
+          confirmApproval()          { this._py('confirmApproval'); },
+        },
+      });
+    </script>
+
+    <script type="text/python">
+      from browser import ajax, window, timer
+      import json
+
+      _loaded = 0
+
+      def _on_data(req, target):
+          global _loaded
+          if req.status == 200:
+              try:
+                  setattr(window.app, target, json.loads(req.text))
+              except:
+                  pass
+              _loaded += 1
+              if _loaded >= 2:
+                  window.app.loading = False
+
+      def _fetch(url, target):
+          req = ajax.ajax()
+          req.bind('complete', lambda r: _on_data(r, target))
+          req.open('GET', url, True)
+          req.send()
+
+      _fetch("https://api.npoint.io/056f57c25b2c3f26bc3f", "courses")
+      _fetch("https://api.npoint.io/8d80b39b6c5897b03cb0", "students")
+
+      _toast_handle = None
+
+      def show_toast(msg, kind="success"):
+          global _toast_handle
+          app = window.app
+          app.toast     = msg
+          app.toastType = kind
+          if _toast_handle:
+              timer.clear_timeout(_toast_handle)
+          def _hide():
+              window.app.toast = ""
+          _toast_handle = timer.set_timeout(_hide, 3000)
+
+      def _enrolments():
+          return list(window.app.enrolments)
+
+      def _statuses():
+          return dict(window.app.enrolmentStatuses)
+
+      def _workshops():
+          return dict(window.app.selectedWorkshops)
+
+      def _student():
+          return window.app.student
+
+      _LABEL = {
+          "not requiring approval": "Enrolled",
+          "pending approval":       "Pending Approval",
+          "approved":               "Approved",
+      }
+
+      _CSS = {
+          "not requiring approval": "status-not-requiring-approval",
+          "pending approval":       "status-pending-approval",
+          "approved":               "status-approved",
+      }
+
+      def _rebuild(enrolments, statuses):
+          labels   = {}
+          classes  = {}
+          by_trim  = {"1": [], "2": [], "3": []}
+          for c in enrolments:
+              cid = str(c["ID"])
+              st  = statuses.get(cid, "")
+              labels[cid]  = _LABEL.get(st, st)
+              classes[cid] = _CSS.get(st, "")
+              t = str(c.get("trimester", ""))
+              if t in by_trim:
+                  by_trim[t].append(c)
+          app = window.app
+          app.statusLabel      = labels
+          app.statusClass      = classes
+          app.enrolmentsByTrim = by_trim
+
+      def _mins(t_str):
+          try:
+              h, m = t_str.strip().split(":")
+              return int(h) * 60 + int(m)
+          except:
+              return -1
+
+      def _overlap(day1, s1, e1, day2, s2, e2):
+          if day1.strip().lower() != day2.strip().lower():
+              return False
+          m1s, m1e = _mins(s1), _mins(e1)
+          m2s, m2e = _mins(s2), _mins(e2)
+          if -1 in (m1s, m1e, m2s, m2e):
+              return False
+          return m1s < m2e and m2s < m1e
+
+      def _schedule(skip_id=None):
+          """All (day, start, end, label) slots from currently enrolled courses."""
+          slots = []
+          ws = _workshops()
+          for c in _enrolments():
+              cid = str(c["ID"])
+              if skip_id is not None and cid == str(skip_id):
+                  continue
+              lt = c.get("lectureTimes", [])
+              if len(lt) >= 3:
+                  slots.append((lt[0], lt[1], lt[2], c["code"] + " Lecture"))
+              w = ws.get(cid, "")
+              if w:
+                  parts = w.split()
+                  if len(parts) >= 4:
+                      slots.append((parts[0], parts[1], parts[3], c["code"] + " Workshop"))
+          return slots
+
+      def _lecture_clash(course):
+          lt = course.get("lectureTimes", [])
+          if len(lt) < 3:
+              return ""
+          for day, s, e, label in _schedule():
+              if _overlap(lt[0], lt[1], lt[2], day, s, e):
+                  return "Lecture clashes with " + label
+          return ""
+
+      def _workshop_clash(course, value, skip_id=None):
+          if not value:
+              return ""
+          parts = value.split()
+          if len(parts) < 4:
+              return ""
+          for day, s, e, label in _schedule(skip_id=skip_id):
+              if _overlap(parts[0], parts[1], parts[3], day, s, e):
+                  return "Workshop clashes with " + label
+          return ""
+
+      def _count_trim(trim, skip_id=None):
+          n = 0
+          for c in _enrolments():
+              if str(c.get("trimester")) == str(trim):
+                  if skip_id is None or str(c["ID"]) != str(skip_id):
+                      n += 1
+          return n
+
+      def _completed():
+          s = _student()
+          return list(s.get("completedCourses", [])) if s else []
+
+      def _codes_before(trim):
+          """Codes of courses enrolled in a trimester earlier than trim."""
+          return [c["code"] for c in _enrolments() 
+            if int(c.get("trimester", 99)) < int(trim)]
+
+      def _check(course):
+          s     = _student()
+          gpa   = float(s.get("gpa", 0))
+          inter = str(s.get("domestic", "")).lower() == "interplanetary"
+          trim  = course.get("trimester")
+          count = _count_trim(trim)
+
+          if gpa <= 4 and count >= 2:
+            return ("block", "Students with a GPA of 4 or below may only enrol in 2 courses per trimester.")
+
+          if count >= 3:
+            if gpa >= 7:
+              pass  # auto-allowed
+            elif count >= 4:
+              return ("block", "Maximum of 4 courses per trimester already reached.")
+            else:
+              return ("approvable", "A 4th course in Trimester " + str(trim) + " requires Associate Dean approval (automatic only for GPA ≥ 7).")
+
+          prereq = (course.get("prerequisite") or "").strip()
+          if prereq:
+            if prereq not in _completed() and prereq not in _codes_before(trim):
+              return ("approvable",
+              "Prerequisite '" + prereq + "' not yet completed. "
+              "Associate Dean approval is required.")
+
+          clash = _lecture_clash(course)
+          if clash:
+            return ("approvable", clash + ". Enroling in clashing courses requires Associate Dean approval.")
+          
+          return ("ok", "")
+
+      # ── Action handlers (called via window.pyHandler from Vue) ──────────────────
+
+      def handle_login(payload):
+          app = window.app
+          found = None
+          for s in app.students:
+              if s["name"] == app.loginForm["name"] and s["password"] == app.loginForm["password"]:
+                  found = s
+                  break
+          if found:
+              app.loggedIn   = True
+              app.student    = found
+              app.enrolments = list(found.get("enrolments", []))
+              app.showLogin  = False
+              app.loginError = ""
+              _rebuild(_enrolments(), _statuses())
+              show_toast("Welcome back, " + found["name"] + "!")
+          else:
+              app.loginError = "Invalid username or password."
+
+      def handle_logout(payload):
+          app = window.app
+          app.loggedIn          = False
+          app.student           = None
+          app.enrolments        = []
+          app.enrolmentStatuses = {}
+          app.selectedWorkshops = {}
+          app.statusLabel       = {}
+          app.statusClass       = {}
+          app.enrolmentsByTrim  = {}
+          show_toast("Logged out successfully.")
+
+      def handle_add_course(course):
+          for c in _enrolments():
+              if str(c["ID"]) == str(course["ID"]):
+                  show_toast("Already enrolled in this course.", "error")
+                  return
+          result, msg = _check(course)
+          if result == "block":
+              show_toast(msg, "error")
+              return
+          if result == "approvable":
+              window.app.approvalModal = {"course": course, "reason": msg}
+              return
+          enrolments = _enrolments()
+          enrolments.append(course)
+          statuses = _statuses()
+          statuses[str(course["ID"])] = "not requiring approval"
+          window.app.enrolments        = enrolments
+          window.app.enrolmentStatuses = statuses
+          _rebuild(enrolments, statuses)
+          show_toast("Enrolled in " + course["name"] + "!")
+
+      def handle_drop_course(course):
+          s     = _student()
+          inter = str(s.get("domestic", "")).lower() == "interplanetary"
+          trim  = course.get("trimester")
+          if inter:
+              if _count_trim(trim, skip_id=course["ID"]) < 2:
+                  show_toast(
+                      "Interplanetary students must maintain at least 2 courses per trimester. "
+                      "Please add another course in Trimester " + str(trim) + " first.",
+                      "error"
+                  )
+                  return
+          cid        = str(course["ID"])
+          enrolments = [c for c in _enrolments() if str(c["ID"]) != cid]
+          statuses   = _statuses()
+          workshops  = _workshops()
+          if cid in statuses:  del statuses[cid]
+          if cid in workshops: del workshops[cid]
+          window.app.enrolments        = enrolments
+          window.app.enrolmentStatuses = statuses
+          window.app.selectedWorkshops = workshops
+          _rebuild(enrolments, statuses)
+          show_toast("Dropped " + course["name"] + ".")
+
+      def handle_select_workshop(payload):
+          course = payload["course"]
+          value  = payload["value"]
+          if not value:
+              return
+          cid       = str(course["ID"])
+          workshops = _workshops()
+          workshops[cid] = value
+          window.app.selectedWorkshops = workshops
+          clash = _workshop_clash(course, value, skip_id=course["ID"])
+          if clash:
+              show_toast("⚠️ " + clash + ". You may need Associate Dean approval.", "warning")
+          else:
+              show_toast("Workshop selected.")
+
+      def handle_confirm_approval(payload):
+          modal = window.app.approvalModal
+          if not modal:
+              return
+          course     = modal["course"]
+          enrolments = _enrolments()
+          enrolments.append(course)
+          statuses = _statuses()
+          statuses[str(course["ID"])] = "pending approval"
+          window.app.enrolments        = enrolments
+          window.app.enrolmentStatuses = statuses
+          window.app.approvalModal     = None
+          _rebuild(enrolments, statuses)
+          show_toast("Approval request submitted — status: Pending Approval.")
+
+      _handlers = {
+          "login":           handle_login,
+          "logout":          handle_logout,
+          "addCourse":       handle_add_course,
+          "dropCourse":      handle_drop_course,
+          "selectWorkshop":  handle_select_workshop,
+          "confirmApproval": handle_confirm_approval,
+      }
+
+      def pyHandler(action, payload):
+          fn = _handlers.get(action)
+          if fn:
+              fn(payload)
+          else:
+              print("Unknown action:", action)
+
+      window.pyHandler = pyHandler
+    </script>
+  </body>
+</html>
